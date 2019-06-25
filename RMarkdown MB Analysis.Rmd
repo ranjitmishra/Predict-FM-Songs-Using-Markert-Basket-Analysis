@@ -1,0 +1,59 @@
+---
+title: "Market Basket Analysis"
+author: "Ranjit Mishra"
+date: "Sunday, November 08, 2015"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+I am using LastFM dataset to demostrate music recommendation based on association rules of Market Basket Analysis. LastFM dataset is widely available on various websites, hence not including the actual data. One needs to download and read the data as 'lastfm' before executing the below piece of code:
+
+```{r mba, echo=FALSE}
+lastfm <- read.csv("~/Analytics/Module 3/Week 7/lastfm.csv")
+```
+
+
+```{r}
+head(lastfm)
+
+## Turn the "user" column into a factor
+lastfm$user <- factor(lastfm$user)
+
+## Load library arules for executing market basket analysis. The below piece of code does the followings - 
+# 1. Splits values containing in "artists" column into groups by the "user"
+# 2. Removes duplicates from playlists
+# 3. Use the "transactions" data class to create a dataset of transactions. 
+
+library(arules)
+
+playlist <- split(x=lastfm[,"artist"],f=lastfm$user)
+
+playlist <- lapply(playlist,unique)
+
+playlist <- as(playlist,"transactions")
+
+# Make a frequency plot of the transactions with a support of 0.08 or greater. We can find out the the most popular artists. The below plot shows that the 3 most popular artists are coldplay, radiohead and the beatles.  
+
+itemFrequencyPlot(playlist, support = .08, cex.names = .6, col = rainbow(4))
+
+# Let's now create the association rules by using the apriori function with a support of 0.01 and confidence of 0.45.  
+
+musicrules <- apriori(playlist,parameter=list(support=.01,confidence=.45))
+
+# We can use 'inspect' function to output the subset with a lift of 6 or more. We can also see Which rules have the highest confidence
+
+inpect6sort <- inspect(sort(subset(musicrules, subset=lift > 6), by="confidence"))
+
+# Let's now load arulesViz package to visualize the associations of all the rules
+
+library(arulesViz)
+
+plot(musicrules, method = "grouped", control = list(k= 20))
+
+# By default number of groups is 20, hence the above plot is showing only 20 groups. It can be increased or decreased based on what needs to be analyzed. The group of most important rules according to lift are shown above. For example, there are 2 rules containing 'beyonce' and 1 more item in the LHS (or the antecedent) and the RHS (or the consequent) is 'rihanna'. It seems the lift is higher for the consequent - 'rihanna' and antecedent - 'beyonce' (because the circle is the darkest in color). Similarly, rest of the rules should be analyzed to extract insights. 
+
+# Scatter plot can also be created  to visualize association rules and itemsets. Try using "T" for interactive parameter below :)
+
+plot(musicrules, method = NULL, measure = "support", shading = "lift", interactive = F)
+```
